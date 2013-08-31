@@ -30,6 +30,8 @@ SimpleGTKDrawspace::SimpleGTKDrawspace() :
 	
 SimpleGTKDrawspace::~SimpleGTKDrawspace()
 {
+	pthread_mutex_destroy(&drawSurfaceMutex);
+	sem_destroy(&waitForRenderSem);
 }
 
 //////////////////////////////////
@@ -51,14 +53,21 @@ gboolean SimpleGTKDrawspace::drawCallback(GtkWidget *widget, cairo_t *cr, gpoint
 	DBG_OUT("d");
 	SimpleGTKDrawspace* thisClass = (SimpleGTKDrawspace*) in_this;
 	
+	bool thisFrameIsWaited = false;
+	if (thisClass->waitingForRedraw) thisFrameIsWaited = true;
+	
 	//cairo_surface_write_to_png (thisClass->drawSurface, "hello.png");
+	if (!thisClass->renderingIsPaused) {
+		pthread_mutex_lock(&(thisClass->drawSurfaceMutex));
+			cairo_set_source_surface (cr, thisClass->drawSurface, 0, 0);
+			cairo_paint (cr);
+		pthread_mutex_unlock(&(thisClass->drawSurfaceMutex));
+	}
 	
-	pthread_mutex_lock(&(thisClass->drawSurfaceMutex));
-		cairo_set_source_surface (cr, thisClass->drawSurface, 0, 0);
-		cairo_paint (cr);
-	pthread_mutex_unlock(&(thisClass->drawSurfaceMutex));
-	
-	
+	if (thisFrameIsWaited) {
+		sem_post(&(thisClass->waitForRenderSem));
+		thisClass->waitingForRedraw = false;
+	}
 	return FALSE;
 }
 
@@ -77,7 +86,7 @@ gboolean SimpleGTKDrawspace::ConfigureEventCallback(GtkWidget *widget, GdkEventM
 	/* Initialize the surface to white */
 	thisClass->drawCairo = cairo_create(thisClass->drawSurface);
 	
-	thisClass->clearSurface();
+	thisClass->clear();
 	
 	//sem_post(&(thisClass->readyToDraw));
 	/* We've handled the configure event, no need for further processing. */
@@ -128,7 +137,13 @@ void SimpleGTKDrawspace::saveButtonCallback(GtkWidget *widget, gpointer in_this)
 gboolean SimpleGTKDrawspace::timerRedrawCallback(gpointer in_this)
 {
 	SimpleGTKDrawspace* thisClass = (SimpleGTKDrawspace*) in_this;
+	
+	if (!thisClass->drawedBetweenFrames || thisClass->renderingIsPaused) return TRUE;
+	
 	gtk_widget_queue_draw(thisClass->drawingArea);
+	
+	thisClass->drawedBetweenFrames = false;
+	
 	return TRUE;
 }
 
@@ -153,6 +168,9 @@ void SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY, Draw
 {
 	initialised = true;
 	drawingInProcess = false;
+	drawedBetweenFrames = true;
+	renderingIsPaused = false;
+	waitingForRedraw = false;
 	
 	gtk_init (pargc, pargv);
 	
@@ -162,6 +180,9 @@ void SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY, Draw
 	pthread_mutex_init(&drawSurfaceMutex, &mutAttributes);
 	pthread_mutexattr_destroy(&mutAttributes);
 	
+	// Creating waiting for render semaphore
+	sem_init(&waitForRenderSem, 0, 1);
+	sem_wait(&waitForRenderSem);
 	
 	// Creating window object
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -214,6 +235,12 @@ void SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY, Draw
 	
 	drawFunction = in_drawFunction;
 	
+	// Setting up font
+	cairo_select_font_face(drawCairo, "mono",
+		CAIRO_FONT_SLANT_NORMAL,
+		CAIRO_FONT_WEIGHT_BOLD);
+	 cairo_set_font_size(drawCairo, 11);
+	
 	DBG_OUT("Starting update timer...\n");
 	g_timeout_add(33, (GSourceFunc) timerRedrawCallback, (gpointer) this);
 	
@@ -236,6 +263,19 @@ void SimpleGTKDrawspace::squareBrush(double in_x, double in_y, double in_size)
 	// TODO: understand what does this function do
 	cairo_stroke(drawCairo);
 	pthread_mutex_unlock(&drawSurfaceMutex);
+	drawedBetweenFrames = true;
+}
+
+void SimpleGTKDrawspace::squareBrushFilled(double in_x, double in_y, double in_size)
+{
+	double sizeDiv2 = in_size / 2.0;
+	
+	pthread_mutex_lock(&drawSurfaceMutex);
+	cairo_rectangle(drawCairo, in_x - sizeDiv2, in_y - sizeDiv2, in_size, in_size);
+	cairo_fill(drawCairo);
+	cairo_stroke(drawCairo);
+	pthread_mutex_unlock(&drawSurfaceMutex);
+	drawedBetweenFrames = true;
 }
 
 void SimpleGTKDrawspace::moveTo(double in_x, double in_y)
@@ -256,6 +296,7 @@ void SimpleGTKDrawspace::line(double in_x0, double in_y0, double in_x1, double i
 	cairo_line_to (drawCairo, in_x1, in_y1);
 	cairo_stroke (drawCairo);
 	pthread_mutex_unlock(&drawSurfaceMutex);
+	drawedBetweenFrames = true;
 }
 
 void SimpleGTKDrawspace::setColor(double in_red, double in_green, double in_blue)
@@ -268,10 +309,43 @@ void SimpleGTKDrawspace::setLineWidth(double in_width)
 	cairo_set_line_width (drawCairo, in_width);
 }
 
-void SimpleGTKDrawspace::clearSurface()
+void SimpleGTKDrawspace::clear()
+{
+	clear(1.0, 1.0, 1.0);
+}
+
+void SimpleGTKDrawspace::clear(double in_r, double in_g, double in_b)
 {
 	pthread_mutex_lock(&drawSurfaceMutex);
-	cairo_set_source_rgba (drawCairo, 1, 1, 1, 1);
+	cairo_set_source_rgba (drawCairo, in_r, in_g, in_b, 1);
 	cairo_paint (drawCairo);
 	pthread_mutex_unlock(&drawSurfaceMutex);
+	drawedBetweenFrames = true;
+}
+
+void SimpleGTKDrawspace::setFontSize()
+{
+}
+
+void SimpleGTKDrawspace::printText(double in_x, double in_y, const char* in_text)
+{
+	cairo_move_to(drawCairo, in_x, in_y);
+	cairo_show_text(drawCairo, in_text);
+}
+
+void SimpleGTKDrawspace::pauseRendering()
+{
+	renderingIsPaused = true;
+}
+
+void SimpleGTKDrawspace::resumeRendering()
+{
+	renderingIsPaused = false;
+}
+
+void SimpleGTKDrawspace::waitForRender()
+{
+	if (!drawedBetweenFrames) return;
+	waitingForRedraw = true;
+	sem_wait(&waitForRenderSem);
 }

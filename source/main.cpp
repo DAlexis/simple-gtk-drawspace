@@ -12,16 +12,26 @@ void draw(SimpleGTKDrawspace* window)
 	g_print("- 2 test brushes\n");
 	window->squareBrush(200, 50, 10);
 	
+	g_print("- Test text\n");
+	window->printText(10, 10, "Hello!");
+
+	
 	g_print("- Test spiral\n");
 	window->setColor(0, 1, 0);
 	window->moveTo(250, 250);
+	
+	window->waitForRender();
+	
+	window->pauseRendering();
+	
 	for (double alpha = 0; alpha < M_PI * 50; alpha += 0.3)
 	{
 		double x = 250 + 1 * cos(alpha) * alpha, y = 250 - 1 * sin(alpha) * alpha;
 		window->lineTo(x, y);
 		window->squareBrush(x, y, 1.0 + alpha*0.1);
-		usleep(20000);
+		usleep(5000);
 	}
+	window->resumeRendering();
 	
 	window->setColor(0.2, 0.4, 0.8);
 	window->line(80, 80, 80, 100);

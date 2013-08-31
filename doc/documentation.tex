@@ -17,9 +17,53 @@
 \usepackage{verbatim}
 
 \title{Описание библиотеки \textbf{simple-gtk-drawspace}}
+
 \begin{document}
 \maketitle
 \section{Введение}
-Создание окна, используя GTK, Qt или другого тулкита для вывода графики "--- непростая задача для только начинающего программировать на C/C++. Библиотека \verb!simple-gtk-drawspace! предназначена для значительного упрощения этой задачи. Она представляет интерфейс, схожий с Borland BGI, позволяя рисовать графическими примитивами на создаваемом автоматически окне GTK. 
-\section{}
+Создание окна, используя GTK, Qt или другого тулкита для вывода графики "--- непростая задача для только начинающего программировать на C/C++. Библиотека \verb!simple-gtk-drawspace! предназначена для значительного упрощения этой задачи. Она представляет интерфейс, чем-то схожий с Borland BGI, позволяя рисовать графическими примитивами на создаваемом автоматически окне GTK. 
+\section{Работа с библиотекой}
+Взаимодействие с библиотекой происхдит через класс \verb!SimpleGTKDrawspace!, описанный в заголовочном файле \verb!simple-gtk-drawspace.h!
+\subsection{Инициализация}
+Для инициализации окна сначала необходимо создать экземпляр класса \verb!SimpleGTKDrawspace!. В качестве аргументов конструктору следует передать адреса аргументов функции \verb!main(int argc,! \verb!char* argv[])!. Это нужно, чтобы была возмоность передавать через аргументы командной строки дополнительные параметры библиотеке GTK+. <<Свои>> параметры после вызова конструктора будут автоматически исключены из \verb!argc! и  \verb!argv!. Также, можно применять конструктор без параметров, если передача дополнительных опций не потребуется в принципе.\par
+Далее, необходимо вызвать функцию \verb!init()! у экземпляра класса \verb!SimpleGTKDrawspace!:
+
+\begin{verbatim}
+SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY,
+                           DrawFunction in_drawFunction)
+\end{verbatim}
+Где первые два аргумента "--- ширина и высота рабочей области, третий~"--- функция, которая будет осущетсвлять рисование. Она будет запущена немедленно в отдельном потоке. Её прототип определяется так:
+\begin{verbatim}
+typedef void (*DrawFunction) (SimpleGTKDrawspace* );
+\end{verbatim}
+Таким образом, для использования библиотеки \verb!simple-gtk-drawspace! программа должна иметь вид:
+\begin{verbatim}
+#include "simple-gtk-drawspace.h"
+...
+void draw(SimpleGTKDrawspace* window)
+{
+    ...
+    window->... // Any drawing function
+    ...
+}
+...
+
+int main(int argc, char* argv[])
+{
+    ...
+    SimpleGTKDrawspace window(&argc, &argv);
+    window.init(500, 500, draw);
+    ...
+}
+\end{verbatim}
+\subsection{Графические примитивы}
+Для рисования графики класс \verb!SimpleGTKDrawspace! имеет следующие функции:
+\begin{itemize}
+	\item \verb!void line(double x0, double y0, double x1, double y1)! "--- прямая линия из точки (x0,~y0) до точки (x1,~y1)
+	\item \verb!void squareBrush(double x, double y, double size)! "--- квадрат с центром в точке (x,~y) со стороной size
+	\item \verb!void squareBrushFilled(double x, double y, double size)! "--- закрашенный квадрат с центром в точке (x,~y) со стороной size
+	\item \verb!void moveTo(double x, double y)! "--- переместить перо в точку с координатами (x,~y)
+	\item \verb!void lineTo(double x, double y)! "--- провести линию из текущего положения пера до точки с координатами (x,~y). При этом (x,~y) становится новым положением пера.
+	\item ...
+\end{itemize}
 \end{document}
