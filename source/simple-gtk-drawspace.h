@@ -1,3 +1,6 @@
+#ifndef _SIMPLE_GTK_DRAWSPACE_
+#define _SIMPLE_GTK_DRAWSPACE_
+
 #include <gtk/gtk.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -14,14 +17,17 @@ public:
 	void moveTo(double in_x, double in_y);
 	void lineTo(double in_x, double in_y);
 	void line(double in_x0, double in_y0, double in_x1, double in_y1);
+	void circle(double in_x, double in_y, double in_radius);
+	void arc(double in_x, double in_y, double in_radius, double in_beginAngle, double in_endAngle);
 	void clear();
 	void clear(double in_r, double in_g, double in_b);
 	
-	void setFontSize();
+	void setFontSize(double in_size);
 	void printText(double in_x, double in_y, const char* in_text);
 	
 	void setColor(double in_red, double in_green, double in_blue);
 	void setLineWidth(double in_width);
+	void setAntialiasing(unsigned int in_grade);
 	
 	void saveToPNG(const char* in_filename);
 	
@@ -81,3 +87,5 @@ private:
 	
 	double currentX, currentY;
 };
+
+#endif

@@ -1,6 +1,7 @@
 #include "simple-gtk-drawspace.h"
 
 #include <signal.h>
+#include <math.h>
 
 #ifdef SGDS_DEBUG
 	#define DBG_OUT(a)	g_print(a)
@@ -239,10 +240,10 @@ void SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY, Draw
 	cairo_select_font_face(drawCairo, "mono",
 		CAIRO_FONT_SLANT_NORMAL,
 		CAIRO_FONT_WEIGHT_BOLD);
-	 cairo_set_font_size(drawCairo, 11);
+	cairo_set_font_size(drawCairo, 11);
 	
 	DBG_OUT("Starting update timer...\n");
-	g_timeout_add(33, (GSourceFunc) timerRedrawCallback, (gpointer) this);
+	g_timeout_add(20, (GSourceFunc) timerRedrawCallback, (gpointer) this);
 	
 	DBG_OUT("Going to gtk_main()\n");
 	
@@ -299,6 +300,24 @@ void SimpleGTKDrawspace::line(double in_x0, double in_y0, double in_x1, double i
 	drawedBetweenFrames = true;
 }
 
+void SimpleGTKDrawspace::circle(double in_x, double in_y, double in_radius)
+{
+	pthread_mutex_lock(&drawSurfaceMutex);
+	cairo_arc(drawCairo, in_x, in_y, in_radius, 0, 2 * M_PI);
+	cairo_stroke(drawCairo);
+	pthread_mutex_unlock(&drawSurfaceMutex);
+	drawedBetweenFrames = true;
+}
+
+void SimpleGTKDrawspace::arc(double in_x, double in_y, double in_radius, double in_beginAngle, double in_endAngle)
+{
+	pthread_mutex_lock(&drawSurfaceMutex);
+	cairo_arc(drawCairo, in_x, in_y, in_radius, 2*M_PI - in_endAngle, 2*M_PI - in_beginAngle);
+	cairo_stroke(drawCairo);
+	pthread_mutex_unlock(&drawSurfaceMutex);
+	drawedBetweenFrames = true;
+}
+
 void SimpleGTKDrawspace::setColor(double in_red, double in_green, double in_blue)
 {
 	cairo_set_source_rgba (drawCairo, in_red, in_green, in_blue, 1);
@@ -323,8 +342,25 @@ void SimpleGTKDrawspace::clear(double in_r, double in_g, double in_b)
 	drawedBetweenFrames = true;
 }
 
-void SimpleGTKDrawspace::setFontSize()
+void SimpleGTKDrawspace::setFontSize(double in_size)
 {
+	cairo_set_font_size(drawCairo, in_size);
+}
+
+void SimpleGTKDrawspace::setAntialiasing(unsigned int in_grade)
+{
+	switch(in_grade)
+	{
+		case 2:
+			cairo_set_antialias(drawCairo, CAIRO_ANTIALIAS_GOOD);
+		break;
+		case 1:
+			cairo_set_antialias(drawCairo, CAIRO_ANTIALIAS_DEFAULT);
+		break;
+		case 0:
+		default:
+			cairo_set_antialias(drawCairo, CAIRO_ANTIALIAS_NONE);
+	}
 }
 
 void SimpleGTKDrawspace::printText(double in_x, double in_y, const char* in_text)
