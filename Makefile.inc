@@ -24,7 +24,7 @@ objs = $(sources:%.cpp=$(BUILD_DIR)/%.o)
 -include $(depends)
 
 $(project): $(objs)
-	$(CXX) $(CXXFLAGS) -g -o $(BUILD_DIR)/$@ $^
+	$(CXX) -g -o $(BUILD_DIR)/$@ $^ $(CXXFLAGS)
 
 $(BUILD_DIR)/%.d: $(sources_dir)/%.cpp
 	mkdir -p $(BUILD_DIR)
@@ -34,7 +34,7 @@ $(BUILD_DIR)/%.o: $(BUILD_DIR)/%.d
 
 $(BUILD_DIR)/%.o: $(sources_dir)/%.cpp
 	mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR)
