@@ -73,7 +73,7 @@ void draw(SimpleGTKDrawspace* window)
 int main(int argc, char* argv[])
 {
 	SimpleGTKDrawspace window(&argc, &argv);
-	window.init(500, 500, draw);
+	window.init(500, 500, draw, nullptr);
 	return 0;
 	
 }
