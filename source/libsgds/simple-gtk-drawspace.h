@@ -2,21 +2,22 @@
 #define _SIMPLE_GTK_DRAWSPACE_
 
 #include <gtk/gtk.h>
-#include <pthread.h>
-#include <semaphore.h>
 #include <queue>
 #include <string>
-using namespace std;
+#include <functional>
+#include <thread>
+#include <mutex>
+#include <future>
 
 class SimpleGTKDrawspace
 {
-
-    typedef void (*DrawFunction) (SimpleGTKDrawspace* );
-    typedef void (*KeyFunction) (string);
 public:
-	void init(unsigned int in_sizeX, unsigned int in_sizeY, DrawFunction in_drawFunction, KeyFunction in_keyFunction);
-	static gboolean key_event(GtkWidget* widget, GdkEventKey* event, gpointer in_this);
-    string GetPressedKey();
+    using KeyPressCallback = std::function<void(const std::string&)>;
+    using DrawFunction = std::function<void(SimpleGTKDrawspace*)>;
+
+    void init(unsigned int in_sizeX, unsigned int in_sizeY, DrawFunction in_drawFunction, KeyPressCallback in_keyFunction = nullptr);
+
+    std::string GetPressedKey();
 
 	void squareBrush(double in_x, double in_y, double in_size);
 	void squareBrushFilled(double in_x, double in_y, double in_size);
@@ -41,58 +42,56 @@ public:
 	void resumeRendering();
 	void waitForRender();
 
-	SimpleGTKDrawspace(int* inout_argc, char** inout_argv[]);
-	SimpleGTKDrawspace();
+    SimpleGTKDrawspace(int* inout_argc = nullptr, char** inout_argv[] = nullptr);
 	~SimpleGTKDrawspace();
 
 private:
-	pthread_t drawThread;
-	GtkWidget *window;
-	GtkWidget *verticalBox;
-	GtkWidget *horizontalBox;
-	GtkWidget *frame;
-	GtkWidget *drawingArea;
+    void run_user_draw();
+    static gboolean gtk_callback_key_event(GtkWidget* widget, GdkEventKey* event, gpointer in_this);
+    static void gtk_callback_close_window(void* in_this);
 
-	GtkWidget *startButton;
-	GtkWidget *pauseButton;
-	GtkWidget *saveButton;
+    // GTK callbacks
+    static gboolean gtk_callback_draw(GtkWidget *widget, cairo_t *cr, gpointer in_this);
+    static gboolean gtk_callback_configure_event(GtkWidget *widget, GdkEventMotion *event, gpointer in_this);
+    static gboolean gtk_callback_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpointer in_this);
+    static void gtk_callback_start_button(GtkWidget *widget, gpointer in_this);
+    static void gtk_callback_save_button(GtkWidget *widget, gpointer in_this);
+    static gboolean gtk_callback_timer_redraw(gpointer in_this);
 
-	GtkWidget *savePictureDialog;
+    std::unique_ptr<std::thread> m_draw_thread;
+    pthread_t drawThread;
+    GtkWidget *m_window = nullptr;
+    GtkWidget *m_verticalBox = nullptr;
+    GtkWidget *m_horizontalBox = nullptr;
+    GtkWidget *m_frame = nullptr;
+    GtkWidget *m_drawingArea = nullptr;
 
-	cairo_surface_t *drawSurface;
-	cairo_t *drawCairo;
-	pthread_mutex_t drawSurfaceMutex;
+    GtkWidget *m_startButton = nullptr;
+    GtkWidget *m_pauseButton = nullptr;
+    GtkWidget *m_saveButton = nullptr;
 
-	sem_t waitForRenderSem;
+    GtkWidget *m_savePictureDialog = nullptr;
 
-	DrawFunction drawFunction;
+    cairo_surface_t *m_drawSurface = nullptr;
+    cairo_t *m_drawCairo = nullptr;
+    std::mutex m_draw_surface_mutex;
 
-	bool initialised;
-	bool drawingInProcess; // user's drawing function is exicuting now
-	bool renderingIsPaused; // user called pauseRendering
-	bool waitingForRedraw; // user called waitForRedraw
+    std::mutex m_wait_for_render_mutex;
+    std::promise<void> m_renering_done;
 
-	bool drawedBetweenFrames; // Need we redraw at all?
+    DrawFunction m_drawFunction;
+    KeyPressCallback m_key_function;
 
-	static void closeWindowCallback(void* in_this);
+    bool m_renderingIsPaused; // user called pauseRendering
+    bool m_waitingForRedraw; // user called waitForRedraw
 
-	// GTK callbacks
-	static gboolean drawCallback(GtkWidget *widget, cairo_t *cr, gpointer in_this);
-	static gboolean ConfigureEventCallback(GtkWidget *widget, GdkEventMotion *event, gpointer in_this);
-	static gboolean motionNotifyEventCallback(GtkWidget *widget, GdkEventMotion *event, gpointer in_this);
-	static void startButtonCallback(GtkWidget *widget, gpointer in_this);
-	static void saveButtonCallback(GtkWidget *widget, gpointer in_this);
+    bool m_drawedBetweenFrames; // Need we redraw at all?
 
-	static void* userDrawThreadFunc(void* in_this);
+    int* m_pargc;
+    char*** m_pargv;
 
-
-	static gboolean timerRedrawCallback(gpointer in_this);
-
-	int* pargc;
-	char*** pargv;
-
-	double currentX, currentY;
-	string pressedKey;
+    double m_current_x, m_current_y;
+    std::string m_pressed_key;
 };
 
 #endif

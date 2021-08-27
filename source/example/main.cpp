@@ -23,9 +23,10 @@ void draw(SimpleGTKDrawspace* window)
 	g_print("- Test spiral\n");
 	window->setColor(0.1, 0.5, 0);
 	window->moveTo(250, 250);
-	
+
 	g_print("- Waiting for render...\n");
-	window->waitForRender();
+    window->waitForRender();
+
 	g_print("- Pausing render\n");
 	window->pauseRendering();
 	
@@ -40,7 +41,7 @@ void draw(SimpleGTKDrawspace* window)
 	window->resumeRendering();
 	
 	g_print("- Animation\n");
-	
+    /*
 	for (int i = 0; i <= 10; i++)
 	{
 		window->setAntialiasing(1);
@@ -66,7 +67,7 @@ void draw(SimpleGTKDrawspace* window)
 			window->squareBrush(x, 480, 10+5*sin(x/490*2*M_PI));
 		}
 	}
-	
+    */
 	g_print("- Drawing end\n");
 }
 
