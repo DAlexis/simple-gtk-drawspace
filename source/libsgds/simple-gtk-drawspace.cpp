@@ -163,7 +163,7 @@ gboolean SimpleGTKDrawspace::gtk_callback_key_event(GtkWidget *widget, GdkEventK
 
 //////////////////////////////////
 // Draw API functions
-void SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY, DrawFunction in_drawFunction, KeyPressCallback in_keyFunction)
+void SimpleGTKDrawspace::run(unsigned int in_sizeX, unsigned int in_sizeY, DrawFunction in_drawFunction, KeyPressCallback in_keyFunction)
 {
     m_drawedBetweenFrames = true;
     m_renderingIsPaused = false;
@@ -207,7 +207,6 @@ void SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY, Draw
 
 	//gtk_container_add (GTK_CONTAINER (window), frame);
 
-
     m_drawingArea = gtk_drawing_area_new ();
     gtk_widget_set_size_request (m_drawingArea, in_sizeX, in_sizeY);
 
@@ -238,12 +237,12 @@ void SimpleGTKDrawspace::init(unsigned int in_sizeX, unsigned int in_sizeY, Draw
 	gtk_main();
 }
 
-void SimpleGTKDrawspace::saveToPNG(const char* in_filename)
+void SimpleGTKDrawspace::save_to_png(const char* in_filename)
 {
     cairo_surface_write_to_png (m_drawSurface, in_filename);
 }
 
-void SimpleGTKDrawspace::squareBrush(double in_x, double in_y, double in_size)
+void SimpleGTKDrawspace::square_brush(double in_x, double in_y, double in_size)
 {
 	double sizeDiv2 = in_size / 2.0;
     std::unique_lock<std::mutex> lck(m_draw_surface_mutex);
@@ -253,7 +252,7 @@ void SimpleGTKDrawspace::squareBrush(double in_x, double in_y, double in_size)
     m_drawedBetweenFrames = true;
 }
 
-void SimpleGTKDrawspace::squareBrushFilled(double in_x, double in_y, double in_size)
+void SimpleGTKDrawspace::square_brush_filled(double in_x, double in_y, double in_size)
 {
 	double sizeDiv2 = in_size / 2.0;
 
@@ -264,15 +263,15 @@ void SimpleGTKDrawspace::squareBrushFilled(double in_x, double in_y, double in_s
     m_drawedBetweenFrames = true;
 }
 
-void SimpleGTKDrawspace::moveTo(double in_x, double in_y)
+void SimpleGTKDrawspace::move_to(double in_x, double in_y)
 {
     m_current_x = in_x; m_current_y = in_y;
 }
 
-void SimpleGTKDrawspace::lineTo(double in_x, double in_y)
+void SimpleGTKDrawspace::line_to(double in_x, double in_y)
 {
     line(m_current_x, m_current_y, in_x, in_y);
-	moveTo(in_x, in_y);
+    move_to(in_x, in_y);
 }
 
 void SimpleGTKDrawspace::line(double in_x0, double in_y0, double in_x1, double in_y1)
@@ -300,12 +299,12 @@ void SimpleGTKDrawspace::arc(double in_x, double in_y, double in_radius, double 
     m_drawedBetweenFrames = true;
 }
 
-void SimpleGTKDrawspace::setColor(double in_red, double in_green, double in_blue)
+void SimpleGTKDrawspace::set_color(double in_red, double in_green, double in_blue)
 {
     cairo_set_source_rgba (m_drawCairo, in_red, in_green, in_blue, 1);
 }
 
-void SimpleGTKDrawspace::setLineWidth(double in_width)
+void SimpleGTKDrawspace::set_line_width(double in_width)
 {
     cairo_set_line_width (m_drawCairo, in_width);
 }
@@ -323,12 +322,12 @@ void SimpleGTKDrawspace::clear(double in_r, double in_g, double in_b)
     m_drawedBetweenFrames = true;
 }
 
-void SimpleGTKDrawspace::setFontSize(double in_size)
+void SimpleGTKDrawspace::set_font_size(double in_size)
 {
     cairo_set_font_size(m_drawCairo, in_size);
 }
 
-void SimpleGTKDrawspace::setAntialiasing(unsigned int in_grade)
+void SimpleGTKDrawspace::set_antialiasing(unsigned int in_grade)
 {
 	switch(in_grade)
 	{
@@ -344,23 +343,23 @@ void SimpleGTKDrawspace::setAntialiasing(unsigned int in_grade)
 	}
 }
 
-void SimpleGTKDrawspace::printText(double in_x, double in_y, const char* in_text)
+void SimpleGTKDrawspace::print_text(double in_x, double in_y, const char* in_text)
 {
     cairo_move_to(m_drawCairo, in_x, in_y);
     cairo_show_text(m_drawCairo, in_text);
 }
 
-void SimpleGTKDrawspace::pauseRendering()
+void SimpleGTKDrawspace::pause_rendering()
 {
     m_renderingIsPaused = true;
 }
 
-void SimpleGTKDrawspace::resumeRendering()
+void SimpleGTKDrawspace::resume_rendering()
 {
     m_renderingIsPaused = false;
 }
 
-void SimpleGTKDrawspace::waitForRender()
+void SimpleGTKDrawspace::wait_for_render()
 {
     if (!m_drawedBetweenFrames) return;
     m_waitingForRedraw = true;
@@ -370,7 +369,7 @@ void SimpleGTKDrawspace::waitForRender()
 
 // This function should be used in the main drawing loop
 // to provide real-time single-key keyboard controls
-std::string SimpleGTKDrawspace::GetPressedKey()
+std::string SimpleGTKDrawspace::get_pressed_key()
 {
     std::string retval = this->m_pressed_key;
     m_pressed_key = "";

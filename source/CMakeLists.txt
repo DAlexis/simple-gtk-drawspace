@@ -4,3 +4,4 @@ project(sgds-toolkit)
 
 add_subdirectory(libsgds)
 add_subdirectory(example)
+add_subdirectory(game)

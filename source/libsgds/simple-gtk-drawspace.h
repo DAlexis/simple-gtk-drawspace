@@ -15,32 +15,32 @@ public:
     using KeyPressCallback = std::function<void(const std::string&)>;
     using DrawFunction = std::function<void(SimpleGTKDrawspace*)>;
 
-    void init(unsigned int in_sizeX, unsigned int in_sizeY, DrawFunction in_drawFunction, KeyPressCallback in_keyFunction = nullptr);
+    void run(unsigned int in_sizeX, unsigned int in_sizeY, DrawFunction in_drawFunction, KeyPressCallback in_keyFunction = nullptr);
 
-    std::string GetPressedKey();
+    std::string get_pressed_key();
 
-	void squareBrush(double in_x, double in_y, double in_size);
-	void squareBrushFilled(double in_x, double in_y, double in_size);
-	void moveTo(double in_x, double in_y);
-	void lineTo(double in_x, double in_y);
+    void square_brush(double in_x, double in_y, double in_size);
+    void square_brush_filled(double in_x, double in_y, double in_size);
+    void move_to(double in_x, double in_y);
+    void line_to(double in_x, double in_y);
 	void line(double in_x0, double in_y0, double in_x1, double in_y1);
 	void circle(double in_x, double in_y, double in_radius);
 	void arc(double in_x, double in_y, double in_radius, double in_beginAngle, double in_endAngle);
 	void clear();
 	void clear(double in_r, double in_g, double in_b);
 
-	void setFontSize(double in_size);
-	void printText(double in_x, double in_y, const char* in_text);
+    void set_font_size(double in_size);
+    void print_text(double in_x, double in_y, const char* in_text);
 
-	void setColor(double in_red, double in_green, double in_blue);
-	void setLineWidth(double in_width);
-	void setAntialiasing(unsigned int in_grade);
+    void set_color(double in_red, double in_green, double in_blue);
+    void set_line_width(double in_width);
+    void set_antialiasing(unsigned int in_grade);
 
-	void saveToPNG(const char* in_filename);
+    void save_to_png(const char* in_filename);
 
-	void pauseRendering();
-	void resumeRendering();
-	void waitForRender();
+    void pause_rendering();
+    void resume_rendering();
+    void wait_for_render();
 
     SimpleGTKDrawspace(int* inout_argc = nullptr, char** inout_argv[] = nullptr);
 	~SimpleGTKDrawspace();
